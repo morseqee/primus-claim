@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Primus Tips — 身份验证</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #0f0f1a; color: #e0e0f0; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+    .card { background: #1a1a2e; border: 1px solid #2a2a4a; border-radius: 16px; padding: 32px; width: 100%; max-width: 420px; }
+    .logo { text-align: center; font-size: 40px; margin-bottom: 8px; }
+    h1 { text-align: center; font-size: 20px; color: #a0a0e0; margin-bottom: 24px; font-weight: 500; }
+    .info-box { background: #12122a; border-radius: 10px; padding: 16px; margin-bottom: 20px; }
+    .info-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 14px; border-bottom: 1px solid #2a2a4a; }
+    .info-row:last-child { border-bottom: none; }
+    .info-label { color: #6060a0; }
+    .info-value { color: #c0c0f0; font-weight: 500; word-break: break-all; text-align: right; max-width: 65%; }
+    .notice { background: #1a1a2e; border: 1px solid #3a3a6a; border-radius: 8px; padding: 12px; font-size: 13px; color: #8080c0; margin-bottom: 20px; }
+    button { width: 100%; padding: 14px; border-radius: 10px; border: none; font-size: 16px; font-weight: 600; cursor: pointer; background: linear-gradient(135deg, #4040c0, #6040e0); color: white; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .status { text-align: center; margin-top: 16px; font-size: 14px; min-height: 20px; color: #8080c0; }
+    .status.error { color: #e05050; }
+    .status.success { color: #40c080; }
+    .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid #4040c0; border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; vertical-align: middle; margin-right: 6px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">🎁</div>
+  <h1>Primus Tips 领取验证</h1>
+  <div class="info-box">
+    <div class="info-row"><span class="info-label">平台</span><span class="info-value" id="info-platform">—</span></div>
+    <div class="info-row"><span class="info-label">用户名</span><span class="info-value" id="info-id">—</span></div>
+    <div class="info-row"><span class="info-label">收款地址</span><span class="info-value" id="info-wallet">—</span></div>
+  </div>
+  <div class="notice">⚠️ 需要安装 <strong>Primus 浏览器插件</strong> 才能完成验证</div>
+  <button id="verify-btn" onclick="startVerification()">开始身份验证</button>
+  <div class="status" id="status"></div>
+</div>
+
+<script type="module">
+  const params    = new URLSearchParams(window.location.search);
+  const TOKEN     = params.get("token");
+  const ID_SOURCE = params.get("idSource");
+  const ID        = params.get("id");
+  const TEMPLATE  = params.get("templateId");
+  const WALLET    = params.get("wallet");
+  const CALLBACK  = params.get("callback");
+
+  const APP_ID     = "0x19c4399c8b480fc83947893dbccd03a97831cf9e";
+  const APP_SECRET = "0xf338f0fe9ae82e1eed1ac1bbf1a93bebee4df80c96c2f5c2a190381259e46dd8";
+
+  const PLATFORM_LABELS = { x: "🐦 X (Twitter)", tiktok: "🎵 TikTok", xiaohongshu: "📕 小红书" };
+
+  document.getElementById("info-platform").textContent = PLATFORM_LABELS[ID_SOURCE] || ID_SOURCE;
+  document.getElementById("info-id").textContent       = `@${ID}`;
+  document.getElementById("info-wallet").textContent   = WALLET ? `${WALLET.slice(0,6)}...${WALLET.slice(-4)}` : "未设置";
+
+  function setStatus(msg, type = "") {
+    const el = document.getElementById("status");
+    el.className = `status ${type}`;
+    el.innerHTML = type === "loading" ? `<span class="spinner"></span>${msg}` : msg;
+  }
+
+  window.startVerification = async function () {
+    const btn = document.getElementById("verify-btn");
+    btn.disabled = true;
+
+    try {
+      setStatus("正在加载 SDK...", "loading");
+
+      // 严格按照官方示例，不加任何额外设置
+      const { PrimusZKTLS } = await import("https://esm.sh/@primuslabs/zktls-js-sdk@0.3.8");
+      const primusZKTLS = new PrimusZKTLS();
+      const initResult = await primusZKTLS.init(APP_ID, APP_SECRET);
+      console.log("[primus] init:", initResult);
+
+      setStatus("请在 Primus 插件中完成验证...", "loading");
+
+      // 生成请求（最简版，完全按官方示例）
+      const request = primusZKTLS.generateRequestParams(TEMPLATE, WALLET);
+      request.setAttMode({ algorithmType: "proxytls" });
+
+      const requestStr       = request.toJsonString();
+      const signedRequestStr = await primusZKTLS.sign(requestStr);
+      console.log("[primus] signedRequestStr:", signedRequestStr);
+
+      // 直接用 SDK 的 startAttestation
+      const attestation = await primusZKTLS.startAttestation(signedRequestStr);
+      console.log("[primus] attestation:", attestation);
+
+      // 验签
+      const verifyResult = await primusZKTLS.verifyAttestation(attestation);
+      console.log("[primus] verifyResult:", verifyResult);
+      if (!verifyResult) throw new Error("attestation 签名验证失败");
+
+      // 回调 Bot
+      setStatus("验证成功！正在通知 Bot...", "loading");
+      const resp = await fetch(CALLBACK, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: TOKEN, attestation, walletAddress: WALLET }),
+      });
+
+      if (!resp.ok) throw new Error(`回调失败 (${resp.status})`);
+
+      setStatus("🎉 验证完成！请回到 Telegram 查看领取结果", "success");
+      btn.textContent = "✅ 已完成";
+
+    } catch (err) {
+      console.error("[primus] error:", err);
+      setStatus(`❌ ${err.message || String(err)}`, "error");
+      btn.disabled = false;
+    }
+  };
+</script>
+</body>
+</html>
