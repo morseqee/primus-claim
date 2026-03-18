@@ -80,7 +80,7 @@
 
       // 生成请求（最简版，完全按官方示例）
       const request = primusZKTLS.generateRequestParams(TEMPLATE, WALLET);
-      request.setAttMode({ algorithmType: "proxytls" });
+      request.setAdditionParams(JSON.stringify({ algorithmType: "proxytls" }));
 
       const requestStr       = request.toJsonString();
       const signedRequestStr = await primusZKTLS.sign(requestStr);
