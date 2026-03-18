@@ -16,6 +16,13 @@
     .info-label { color: #6060a0; }
     .info-value { color: #c0c0f0; font-weight: 500; word-break: break-all; text-align: right; max-width: 65%; }
     .notice { background: #1a1a2e; border: 1px solid #3a3a6a; border-radius: 8px; padding: 12px; font-size: 13px; color: #8080c0; margin-bottom: 20px; }
+    .steps { margin-bottom: 24px; }
+    .step { display: flex; align-items: flex-start; gap: 12px; padding: 8px 0; font-size: 14px; color: #8080c0; }
+    .step.active { color: #e0e0f0; }
+    .step.done   { color: #40c080; }
+    .step-num { width: 24px; height: 24px; border-radius: 50%; background: #2a2a4a; display: flex; align-items: center; justify-content: center; font-size: 12px; flex-shrink: 0; }
+    .step.active .step-num { background: #4040c0; color: white; }
+    .step.done   .step-num { background: #40c080; color: white; }
     button { width: 100%; padding: 14px; border-radius: 10px; border: none; font-size: 16px; font-weight: 600; cursor: pointer; background: linear-gradient(135deg, #4040c0, #6040e0); color: white; }
     button:disabled { opacity: 0.5; cursor: not-allowed; }
     .status { text-align: center; margin-top: 16px; font-size: 14px; min-height: 20px; color: #8080c0; }
@@ -35,6 +42,11 @@
     <div class="info-row"><span class="info-label">收款地址</span><span class="info-value" id="info-wallet">—</span></div>
   </div>
   <div class="notice">⚠️ 需要安装 <strong>Primus 浏览器插件</strong> 才能完成验证</div>
+  <div class="steps">
+    <div class="step active" id="step1"><div class="step-num">1</div><div>初始化 Primus SDK</div></div>
+    <div class="step" id="step2"><div class="step-num">2</div><div>验证账号身份（通过插件）</div></div>
+    <div class="step" id="step3"><div class="step-num">3</div><div>提交证明，Bot 自动领取</div></div>
+  </div>
   <button id="verify-btn" onclick="startVerification()">开始身份验证</button>
   <div class="status" id="status"></div>
 </div>
@@ -46,10 +58,10 @@
   const ID        = params.get("id");
   const TEMPLATE  = params.get("templateId");
   const WALLET    = params.get("wallet");
-  const CALLBACK  = params.get("callback");
+  const SIGN_URL  = params.get("signUrl");   // 后端签名接口
+  const CALLBACK  = params.get("callback");  // 后端回调接口
 
-  const APP_ID     = "0x19c4399c8b480fc83947893dbccd03a97831cf9e";
-  const APP_SECRET = "0xf338f0fe9ae82e1eed1ac1bbf1a93bebee4df80c96c2f5c2a190381259e46dd8";
+  const APP_ID = "0x19c4399c8b480fc83947893dbccd03a97831cf9e";
 
   const PLATFORM_LABELS = { x: "🐦 X (Twitter)", tiktok: "🎵 TikTok", xiaohongshu: "📕 小红书" };
 
@@ -63,40 +75,60 @@
     el.innerHTML = type === "loading" ? `<span class="spinner"></span>${msg}` : msg;
   }
 
+  function setStep(n) {
+    for (let i = 1; i <= 3; i++) {
+      const el = document.getElementById(`step${i}`);
+      if (i < n)       { el.className = "step done";   el.querySelector(".step-num").textContent = "✓"; }
+      else if (i === n)  el.className = "step active";
+      else               el.className = "step";
+    }
+  }
+
   window.startVerification = async function () {
     const btn = document.getElementById("verify-btn");
     btn.disabled = true;
 
     try {
-      setStatus("正在加载 SDK...", "loading");
+      // Step 1: 初始化 SDK（Production 模式，不传 appSecret）
+      setStatus("正在初始化 SDK...", "loading");
+      setStep(1);
 
-      // 严格按照官方示例，不加任何额外设置
       const { PrimusZKTLS } = await import("https://esm.sh/@primuslabs/zktls-js-sdk@0.3.8");
       const primusZKTLS = new PrimusZKTLS();
-      const initResult = await primusZKTLS.init(APP_ID, APP_SECRET);
+      const initResult = await primusZKTLS.init(APP_ID);  // 不传 appSecret
       console.log("[primus] init:", initResult);
 
-      setStatus("请在 Primus 插件中完成验证...", "loading");
+      setStep(2);
+      setStatus("正在准备请求...", "loading");
 
-      // 生成请求（最简版，完全按官方示例）
+      // Step 2: 生成请求（不在前端签名）
       const request = primusZKTLS.generateRequestParams(TEMPLATE, WALLET);
       request.setAttMode({ algorithmType: "proxytls" });
 
-      const requestStr       = request.toJsonString();
-      const signedRequestStr = await primusZKTLS.sign(requestStr);
-      console.log("[primus] signedRequestStr:", signedRequestStr);
+      const requestStr = request.toJsonString();
+      console.log("[primus] requestStr:", requestStr);
 
-      // 直接用 SDK 的 startAttestation
+      // 从后端获取签名（appSecret 在后端，前端不接触）
+      setStatus("正在获取签名...", "loading");
+      const signResp = await fetch(`${SIGN_URL}?signParams=${encodeURIComponent(requestStr)}`);
+      if (!signResp.ok) throw new Error(`签名接口失败 (${signResp.status})`);
+      const { signResult: signedRequestStr } = await signResp.json();
+      console.log("[primus] signed:", signedRequestStr.slice(0, 100));
+
+      // Step 3: 开始验证
+      setStatus("请在 Primus 插件中完成验证...", "loading");
       const attestation = await primusZKTLS.startAttestation(signedRequestStr);
-      console.log("[primus] attestation:", attestation);
+      console.log("[primus] attestation:", JSON.stringify(attestation).slice(0, 200));
 
       // 验签
       const verifyResult = await primusZKTLS.verifyAttestation(attestation);
       console.log("[primus] verifyResult:", verifyResult);
       if (!verifyResult) throw new Error("attestation 签名验证失败");
 
-      // 回调 Bot
+      // Step 4: 回调 Bot
       setStatus("验证成功！正在通知 Bot...", "loading");
+      setStep(3);
+
       const resp = await fetch(CALLBACK, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
