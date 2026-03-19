@@ -446,7 +446,12 @@
 
   async function refresh() {
     try {
-      const resp = await fetch(`${SERVER}/round`, { headers: { "ngrok-skip-browser-warning": "true" } });
+      const resp = await fetch(`${SERVER}/round`, { 
+  headers: { 
+    "ngrok-skip-browser-warning": "true",
+    "Access-Control-Allow-Origin": "*"
+  } 
+});
       const data = await resp.json();
 
       const round    = parseInt(data.round);
