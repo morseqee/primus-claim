@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Price Guess</title>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@200;300;400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #f5f5f3; --surface: #ffffff; --border: #e0e0dc;
+      --text: #1a1a18; --muted: #888880; --faint: #c8c8c4;
+      --green: #2d6a4f; --amber: #92400e;
+      --mono: "IBM Plex Mono", monospace;
+      --sans: "IBM Plex Sans", sans-serif;
+    }
+    body { font-family: var(--sans); background: var(--bg); color: var(--text); min-height: 100vh; font-size: 14px; }
+
+    header {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 14px 32px; background: var(--surface); border-bottom: 1px solid var(--border);
+    }
+    .logo { font-family: var(--mono); font-size: 15px; font-weight: 500; }
+    .header-right { display: flex; align-items: center; gap: 12px; }
+    .round-tag { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+    .vrf-badge { font-size: 10px; color: var(--muted); background: var(--bg); border: 1px solid var(--border); padding: 3px 8px; border-radius: 4px; }
+
+    .layout { display: grid; grid-template-columns: 1fr 400px; height: calc(100vh - 53px); }
+
+    /* ── Left ── */
+    .left { display: flex; flex-direction: column; border-right: 1px solid var(--border); overflow-y: auto; }
+
+    /* Hero price block */
+    .hero {
+      flex: 0 0 auto; padding: 40px 40px 32px;
+      display: flex; flex-direction: column; align-items: center; gap: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+    .coin-badge {
+      font-family: var(--mono); font-size: 12px; color: var(--muted);
+      letter-spacing: 3px; text-transform: uppercase;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .coin-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--faint); }
+    .coin-dot.live { background: #22c55e; box-shadow: 0 0 0 3px rgba(34,197,94,0.15); }
+
+    .price-display {
+      font-family: var(--mono); font-weight: 200; font-size: 88px;
+      letter-spacing: -2px; line-height: 1; color: var(--text);
+      transition: color 0.3s; white-space: nowrap;
+    }
+    .price-display.flash-up   { color: var(--green); }
+    .price-display.flash-down { color: #dc2626; }
+
+    .price-change {
+      font-family: var(--mono); font-size: 13px; color: var(--muted);
+    }
+    .price-change.up   { color: var(--green); }
+    .price-change.down { color: #dc2626; }
+
+    /* Timer */
+    .timer-section { flex: 0 0 auto; padding: 20px 40px; border-bottom: 1px solid var(--border); }
+    .timer-row { display: flex; justify-content: space-between; margin-bottom: 8px; }
+    .timer-label { font-size: 12px; color: var(--muted); }
+    .timer-val { font-family: var(--mono); font-size: 12px; font-weight: 500; }
+    .bar-bg { height: 2px; background: var(--border); border-radius: 1px; }
+    .bar-fill { height: 2px; background: var(--text); border-radius: 1px; transition: width 1s linear; }
+
+    /* Stats */
+    .stats-section { flex: 0 0 auto; padding: 20px 40px; border-bottom: 1px solid var(--border); }
+    .stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+    .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; }
+    .stat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+    .stat-value { font-family: var(--mono); font-size: 20px; font-weight: 400; }
+    .stat-sub { font-size: 11px; color: var(--muted); margin-top: 3px; }
+
+    /* Previous round result */
+    .prev-section { flex: 0 0 auto; padding: 20px 40px; border-bottom: 1px solid var(--border); display: none; }
+    .section-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 14px; }
+
+    .prev-answer-row { display: flex; align-items: baseline; gap: 12px; margin-bottom: 14px; }
+    .prev-coin { font-family: var(--mono); font-size: 13px; color: var(--muted); letter-spacing: 2px; }
+    .prev-price { font-family: var(--mono); font-size: 40px; font-weight: 300; letter-spacing: -1px; }
+    .prev-price.verified { color: var(--green); }
+    .prev-price.pending  { color: var(--muted); }
+    .zktls-tag { font-size: 10px; color: var(--green); background: #e8f5e9; padding: 2px 8px; border-radius: 4px; font-family: var(--mono); }
+
+    .prev-meta { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+    .meta-val { font-family: var(--mono); font-size: 14px; }
+    .meta-lbl { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .badge { display: inline-block; font-size: 10px; font-family: var(--mono); padding: 2px 8px; border-radius: 4px; }
+    .badge.claimed  { background: #e8f5e9; color: var(--green); }
+    .badge.unclaim  { background: #fff3e0; color: var(--amber); }
+    .badge.rollover { background: var(--bg); color: var(--muted); border: 1px solid var(--border); }
+    .badge.no-winner { background: var(--bg); color: var(--muted); border: 1px solid var(--border); }
+
+    /* How to play */
+    .howto-section { flex: 1; padding: 24px 40px 40px; }
+    .howto-steps { display: flex; flex-direction: column; gap: 7px; margin-bottom: 14px; }
+    .howto-step { font-size: 12px; color: var(--muted); display: flex; gap: 10px; line-height: 1.5; }
+    .howto-step b { color: var(--text); font-weight: 500; min-width: 18px; }
+    .vrf-note { font-size: 11px; color: var(--muted); line-height: 1.6; padding: 10px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; }
+
+    /* ZK-TLS modal overlay */
+    .zktls-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(245,245,243,0.92); z-index: 100;
+      flex-direction: column; align-items: center; justify-content: center; gap: 16px;
+    }
+    .zktls-overlay.show { display: flex; }
+    .zktls-spinner { width: 40px; height: 40px; border: 2px solid var(--border); border-top-color: var(--text); border-radius: 50%; animation: spin 1s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .zktls-msg { font-family: var(--mono); font-size: 14px; color: var(--text); }
+    .zktls-sub { font-size: 12px; color: var(--muted); }
+
+    /* ── Right ── */
+    .right { display: flex; flex-direction: column; background: var(--surface); overflow: hidden; }
+
+    .panel { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+    .panel-head { padding: 16px 20px 10px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+    .panel-title { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1.5px; }
+    .panel-sub   { font-size: 11px; color: var(--muted); margin-top: 3px; }
+
+    .col-head { display: grid; grid-template-columns: 100px 1fr 52px; gap: 8px; padding: 6px 20px; }
+    .col-head span { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .guess-list { overflow-y: auto; flex: 1; }
+    .guess-row { display: grid; grid-template-columns: 100px 1fr 52px; gap: 8px; padding: 7px 20px; border-bottom: 1px solid var(--bg); align-items: center; }
+    .guess-row:last-child { border-bottom: none; }
+    .g-price { font-family: var(--mono); font-size: 14px; }
+    .g-price.winner { color: var(--green); font-weight: 500; }
+    .g-addr  { font-size: 11px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .g-time  { font-family: var(--mono); font-size: 10px; color: var(--faint); text-align: right; }
+    .empty   { color: var(--muted); font-size: 13px; text-align: center; padding: 20px; }
+
+    .divider { height: 1px; background: var(--border); flex-shrink: 0; }
+
+    @media (max-width: 800px) {
+      .layout { grid-template-columns: 1fr; height: auto; }
+      .left { border-right: none; }
+      .price-display { font-size: 56px; }
+      .right { height: 500px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Price Guess</div>
+  <div class="header-right">
+    <div class="vrf-badge">ZK-TLS Verified · Primus</div>
+    <div class="round-tag" id="round-tag">—</div>
+  </div>
+</header>
+
+<!-- ZK-TLS overlay -->
+<div class="zktls-overlay" id="zktls-overlay">
+  <div class="zktls-spinner"></div>
+  <div class="zktls-msg" id="zktls-msg">正在获取价格证明...</div>
+  <div class="zktls-sub" id="zktls-sub">请在 Primus 插件中完成验证</div>
+</div>
+
+<div class="layout">
+  <!-- ── Left ── -->
+  <div class="left">
+
+    <!-- Hero price -->
+    <div class="hero">
+      <div class="coin-badge">
+        <div class="coin-dot live" id="coin-dot"></div>
+        <span id="coin-label">BTC · Bitcoin</span>
+      </div>
+      <div class="price-display" id="price-display">—</div>
+      <div class="price-change" id="price-change">—</div>
+    </div>
+
+    <!-- Timer -->
+    <div class="timer-section">
+      <div class="timer-row">
+        <span class="timer-label">Round ends in</span>
+        <span class="timer-val" id="timer-val">--:--</span>
+      </div>
+      <div class="bar-bg"><div class="bar-fill" id="bar-fill" style="width:100%"></div></div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-section">
+      <div class="stats">
+        <div class="stat-card">
+          <div class="stat-label">Prize Pool</div>
+          <div class="stat-value" id="pool-val">—</div>
+          <div class="stat-sub">USDT · 90% to winner</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Participants</div>
+          <div class="stat-value" id="participants-val">—</div>
+          <div class="stat-sub" id="fee-sub">1 USDT per guess</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Guess Rule</div>
+          <div class="stat-value" style="font-size:14px;line-height:1.4">Closest<br>wins</div>
+          <div class="stat-sub">same price → earliest</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Previous round result -->
+    <div class="prev-section" id="prev-section">
+      <div class="section-label" id="prev-section-label">Previous Round Result</div>
+      <div class="prev-answer-row">
+        <div class="prev-coin" id="prev-coin">—</div>
+        <div class="prev-price pending" id="prev-price">—</div>
+        <div class="zktls-tag" id="prev-zktls-tag" style="display:none">✓ ZK-TLS</div>
+      </div>
+      <div class="prev-meta">
+        <div>
+          <div class="meta-val" id="pr-pool">—</div>
+          <div class="meta-lbl">Pool (USDT)</div>
+        </div>
+        <div>
+          <div class="meta-val" id="pr-cnt">—</div>
+          <div class="meta-lbl">Participants</div>
+        </div>
+        <div>
+          <div class="meta-val" id="pr-winner">—</div>
+          <div class="meta-lbl">Winner</div>
+        </div>
+        <div>
+          <span class="badge rollover" id="pr-badge">—</span>
+          <div class="meta-lbl" style="margin-top:6px">Prize</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- How to play -->
+    <div class="howto-section">
+      <div class="section-label">How to play</div>
+      <div class="howto-steps">
+        <div class="howto-step"><b>1.</b> 每轮随机选一个币种（BTC/ETH/SOL/BNB/LINK/HYPE），持续 30 分钟</div>
+        <div class="howto-step"><b>2.</b> 通过 Telegram Bot 猜该币种在轮次结束时的精确价格（保留两位小数）</div>
+        <div class="howto-step"><b>3.</b> 每次猜测费用 1 USDT，同一价格只能被一个地址猜</div>
+        <div class="howto-step"><b>4.</b> 轮次结束时，页面自动通过 ZK-TLS 获取真实价格并写入合约</div>
+        <div class="howto-step"><b>5.</b> 最接近真实价格的猜测者赢得奖池 90%（同价格时先猜的赢）</div>
+        <div class="howto-step"><b>6.</b> 无人猜中则奖池滚入下一轮，持续累积</div>
+      </div>
+      <div class="vrf-note">
+        🔗 轮次结束时的价格由 <strong>Primus ZK-TLS</strong> 从 MetaMask Price API 实时获取并验证，任何人均可验证证明的真实性，确保价格不可被篡改。
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── Right ── -->
+  <div class="right">
+
+    <!-- Current round guesses -->
+    <div class="panel" style="flex: 1.2;">
+      <div class="panel-head">
+        <div class="panel-title" id="cur-title">Current Round</div>
+        <div class="panel-sub" id="cur-sub">—</div>
+      </div>
+      <div class="col-head">
+        <span>Price (USD)</span><span>Address</span><span style="text-align:right">Time</span>
+      </div>
+      <div class="guess-list" id="cur-list">
+        <div class="empty">No guesses yet</div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Previous round guesses -->
+    <div class="panel" style="flex: 1;">
+      <div class="panel-head">
+        <div class="panel-title" id="prev-title">Previous Round</div>
+        <div class="panel-sub" id="prev-sub">—</div>
+      </div>
+      <div class="col-head">
+        <span>Price (USD)</span><span>Address</span><span style="text-align:right">Time</span>
+      </div>
+      <div class="guess-list" id="prev-list">
+        <div class="empty">—</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script type="module">
+  const SERVER  = "https://unorganic-obliquely-young.ngrok-free.dev";
+  const APP_ID  = "0x19c4399c8b480fc83947893dbccd03a97831cf9e";
+  const WALLET  = "0xb9e4cE07a0d644dabF9B3BC5d4934555729afD71"; // 页面触发用的地址
+  const ROUND_DURATION = 30 * 60;
+  const ZERO = "0x0000000000000000000000000000000000000000";
+
+  const COIN_LABELS = {
+    BTC:  "BTC · Bitcoin",
+    ETH:  "ETH · Ethereum",
+    SOL:  "SOL · Solana",
+    BNB:  "BNB · BNB Chain",
+    LINK: "LINK · Chainlink",
+    HYPE: "HYPE · Hyperliquid",
+  };
+  const COIN_IDS = {
+    BTC: "bitcoin", ETH: "ethereum", SOL: "solana",
+    BNB: "binancecoin", LINK: "chainlink", HYPE: "hyperliquid",
+  };
+
+  const fmtPrice  = v => (v / 100).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const fmtUsdt   = v => (parseInt(v) / 1e6).toFixed(2);
+  const short     = a => a.slice(0,6) + "..." + a.slice(-4);
+  const fmtTS     = ts => new Date(Number(ts)*1000).toLocaleTimeString("zh-CN",{hour:"2-digit",minute:"2-digit"});
+  const fmtLeft   = end => {
+    const s = Math.max(0, Number(end) - Math.floor(Date.now()/1000));
+    return String(Math.floor(s/60)).padStart(2,"0") + ":" + String(s%60).padStart(2,"0");
+  };
+
+  let timerInterval;
+  let lastPrice = null;
+  let livePrice = null;
+  let currentRound = null;
+  let currentEndTime = null;
+  let currentTemplateId = null;
+  let currentCoin = null;
+  let hasTriggeredZktls = false;
+
+  // 实时价格轮询
+  async function fetchLivePrice(coinId) {
+    try {
+      const r = await fetch(`https://price.api.cx.metamask.io/v1/spot-prices/${coinId}?vsCurrency=usd`);
+      const d = await r.json();
+      return d.price;
+    } catch { return null; }
+  }
+
+  function updatePriceDisplay(price) {
+    const el     = document.getElementById("price-display");
+    const chEl   = document.getElementById("price-change");
+    const fmtted = price?.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || "—";
+
+    if (lastPrice !== null && price !== null) {
+      const diff    = price - lastPrice;
+      const pct     = ((diff / lastPrice) * 100).toFixed(3);
+      const sign    = diff >= 0 ? "+" : "";
+      chEl.textContent = `${sign}${diff.toFixed(2)} (${sign}${pct}%)`;
+      chEl.className   = "price-change " + (diff >= 0 ? "up" : "down");
+
+      el.className = "price-display " + (diff >= 0 ? "flash-up" : "flash-down");
+      setTimeout(() => { el.className = "price-display"; }, 600);
+    }
+
+    el.textContent = fmtted;
+    lastPrice = price;
+    livePrice = price;
+  }
+
+  function startTimer(endTime) {
+    clearInterval(timerInterval);
+    timerInterval = setInterval(() => {
+      const left = Number(endTime) - Math.floor(Date.now()/1000);
+      document.getElementById("timer-val").textContent = fmtLeft(endTime);
+      document.getElementById("bar-fill").style.width = Math.max(0, left/ROUND_DURATION*100) + "%";
+
+      // 轮次结束时自动触发 ZK-TLS
+      if (left <= 0 && !hasTriggeredZktls && currentTemplateId) {
+        hasTriggeredZktls = true;
+        triggerZktls();
+      }
+    }, 1000);
+  }
+
+  function renderList(id, guesses, answer, answered) {
+    const el = document.getElementById(id);
+    if (!guesses?.length) { el.innerHTML = '<div class="empty">No guesses yet</div>'; return; }
+    el.innerHTML = [...guesses].map(g => {
+      const p   = fmtPrice(g.price);
+      const win = answered && g.price === answer;
+      return `<div class="guess-row">
+        <span class="g-price${win?" winner":""}">${p}${win?" ✓":""}</span>
+        <span class="g-addr">${short(g.player)}</span>
+        <span class="g-time">${fmtTS(g.timestamp)}</span>
+      </div>`;
+    }).join("");
+  }
+
+  async function triggerZktls() {
+    const overlay = document.getElementById("zktls-overlay");
+    overlay.classList.add("show");
+    document.getElementById("zktls-msg").textContent = "正在获取价格证明...";
+    document.getElementById("zktls-sub").textContent = "请在 Primus 插件中完成验证";
+
+    try {
+      const { PrimusZKTLS } = await import("https://esm.sh/@primuslabs/zktls-js-sdk@0.3.8");
+      const primus = new PrimusZKTLS();
+      await primus.init(APP_ID);
+
+      const req = primus.generateRequestParams(currentTemplateId, WALLET);
+      req.setAttMode({ algorithmType: "proxytls" });
+      const requestStr = req.toJsonString();
+
+      const signResp = await fetch(`${SERVER}/primus/sign?signParams=${encodeURIComponent(requestStr)}`, {
+        headers: { "ngrok-skip-browser-warning": "true" }
+      });
+      const { signResult } = await signResp.json();
+
+      document.getElementById("zktls-sub").textContent = "请在 Primus 插件中完成验证...";
+      const attestation = await primus.startAttestation(signResult);
+
+      const data  = JSON.parse(attestation.data);
+      const price = parseFloat(data.price);
+      document.getElementById("zktls-msg").textContent = `价格已确认：$${price.toFixed(2)}`;
+      document.getElementById("zktls-sub").textContent = "正在写入合约...";
+
+      // 提交到后端
+      const resp = await fetch(`${SERVER}/submit-price`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "ngrok-skip-browser-warning": "true" },
+        body: JSON.stringify({ attestation, round: currentRound }),
+      });
+      const result = await resp.json();
+
+      if (result.ok) {
+        document.getElementById("zktls-msg").textContent = `✅ 价格已验证：$${result.price}`;
+        document.getElementById("zktls-sub").textContent = "ZK-TLS 证明已写入合约";
+        setTimeout(() => overlay.classList.remove("show"), 3000);
+      } else {
+        throw new Error(result.error);
+      }
+    } catch(err) {
+      console.error("ZK-TLS error:", err);
+      document.getElementById("zktls-msg").textContent = `❌ ${err.message}`;
+      document.getElementById("zktls-sub").textContent = "验证失败，价格将由其他在线用户提交";
+      setTimeout(() => overlay.classList.remove("show"), 5000);
+    }
+  }
+
+  async function loadPrevRound(roundNum) {
+    if (roundNum <= 1) return;
+    try {
+      const r = await fetch(`${SERVER}/round?r=${roundNum-1}`, { headers: { "ngrok-skip-browser-warning": "true" } });
+      // 简化：直接用当前 /round 接口的 prev 数据
+    } catch(e) {}
+  }
+
+  let prevRoundData = null;
+
+  async function refresh() {
+    try {
+      const resp = await fetch(`${SERVER}/round`, { headers: { "ngrok-skip-browser-warning": "true" } });
+      const data = await resp.json();
+
+      const round    = parseInt(data.round);
+      const endTime  = parseInt(data.endTime);
+      const now      = Math.floor(Date.now()/1000);
+      const ended    = now >= endTime;
+
+      // 如果轮次变了，重置 ZK-TLS 触发标志
+      if (currentRound !== round) {
+        currentRound      = round;
+        currentEndTime    = endTime;
+        currentTemplateId = data.templateId;
+        currentCoin       = data.coin;
+        hasTriggeredZktls = data.answered; // 如果已有答案，不重复触发
+        lastPrice         = null;
+      }
+
+      document.getElementById("round-tag").textContent  = `Round #${round}`;
+      document.getElementById("coin-label").textContent = COIN_LABELS[data.coin] || data.coin;
+      document.getElementById("coin-dot").className     = "coin-dot" + (ended ? "" : " live");
+      document.getElementById("pool-val").textContent   = fmtUsdt(data.pool);
+      document.getElementById("participants-val").textContent = data.guesses.length;
+
+      // 右侧当前轮竞猜
+      document.getElementById("cur-title").textContent = `Round #${round} · ${data.coin}`;
+      document.getElementById("cur-sub").textContent   = `${data.guesses.length} guesses · ${ended ? "Round ended" : fmtLeft(endTime) + " remaining"}`;
+      renderList("cur-list", data.guesses, data.answered ? parseInt(data.answer) : null, data.answered);
+
+      startTimer(endTime);
+
+      // 实时价格
+      const coinId = COIN_IDS[data.coin];
+      if (coinId && !ended) {
+        const price = await fetchLivePrice(coinId);
+        if (price) updatePriceDisplay(price);
+      } else if (data.answered && parseInt(data.answer) > 0) {
+        const p = parseInt(data.answer) / 100;
+        document.getElementById("price-display").textContent = p.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        document.getElementById("price-display").className = "price-display";
+        document.getElementById("price-change").textContent = "ZK-TLS verified";
+        document.getElementById("price-change").className   = "price-change up";
+      }
+
+    } catch(e) {
+      console.error("refresh error:", e);
+    }
+  }
+
+  refresh();
+  setInterval(refresh, 15000);
+  // 价格每10秒更新一次
+  setInterval(async () => {
+    if (currentCoin) {
+      const id = COIN_IDS[currentCoin];
+      if (id) {
+        const price = await fetchLivePrice(id);
+        if (price) updatePriceDisplay(price);
+      }
+    }
+  }, 10000);
+</script>
+</body>
+</html>
