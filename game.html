@@ -7,104 +7,93 @@
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
     :root {
-      --bg:       #f5f5f3;
-      --surface:  #ffffff;
-      --border:   #e0e0dc;
-      --text:     #1a1a18;
-      --muted:    #888880;
-      --accent:   #1a1a18;
-      --green:    #2d6a4f;
-      --mono:     "IBM Plex Mono", monospace;
-      --sans:     "IBM Plex Sans", sans-serif;
+      --bg: #f5f5f3; --surface: #ffffff; --border: #e0e0dc;
+      --text: #1a1a18; --muted: #888880; --accent: #1a1a18;
+      --green: #2d6a4f; --red: #8b1a1a;
+      --mono: "IBM Plex Mono", monospace; --sans: "IBM Plex Sans", sans-serif;
     }
-
     body { font-family: var(--sans); background: var(--bg); color: var(--text); min-height: 100vh; font-size: 14px; }
 
-    header {
-      display: flex; justify-content: space-between; align-items: center;
-      padding: 16px 32px; background: var(--surface);
-      border-bottom: 1px solid var(--border);
-    }
-    .logo { font-family: var(--mono); font-size: 15px; font-weight: 500; letter-spacing: -0.5px; }
+    header { display: flex; justify-content: space-between; align-items: center; padding: 14px 32px; background: var(--surface); border-bottom: 1px solid var(--border); }
+    .logo { font-family: var(--mono); font-size: 15px; font-weight: 500; }
+    .header-right { display: flex; align-items: center; gap: 16px; }
     .round-info { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+    .vrf-badge { font-size: 10px; color: var(--muted); background: var(--bg); border: 1px solid var(--border); padding: 3px 8px; border-radius: 4px; }
 
-    .layout { display: grid; grid-template-columns: 1fr 380px; min-height: calc(100vh - 53px); }
+    .layout { display: grid; grid-template-columns: 1fr 400px; min-height: calc(100vh - 53px); }
 
     /* ── Left ── */
-    .left {
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      gap: 32px; padding: 48px 40px; border-right: 1px solid var(--border);
-    }
+    .left { display: flex; flex-direction: column; padding: 32px 40px; border-right: 1px solid var(--border); gap: 28px; }
 
-    .number-display {
-      font-family: var(--mono); font-size: 96px; font-weight: 300;
-      letter-spacing: 10px; color: var(--text); line-height: 1;
-      min-height: 116px; display: flex; align-items: center;
-      transition: color 0.3s;
-    }
-    .number-display.rolling { color: #b0b0aa; }
+    .number-section { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 32px 0; }
+    .number-display { font-family: var(--mono); font-size: 96px; font-weight: 300; letter-spacing: 10px; color: var(--text); line-height: 1; transition: color 0.3s; }
+    .number-display.rolling { color: #c0c0bc; }
     .number-display.revealed { color: var(--green); }
+    .digit-hint { font-family: var(--mono); font-size: 11px; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; }
 
-    .digit-hint {
-      font-family: var(--mono); font-size: 11px; color: var(--muted);
-      letter-spacing: 2px; text-transform: uppercase;
-    }
-
-    .timer-wrap { width: 100%; max-width: 380px; }
+    .timer-wrap { width: 100%; }
     .timer-top { display: flex; justify-content: space-between; margin-bottom: 6px; }
     .timer-label { font-size: 12px; color: var(--muted); }
-    .timer-val { font-family: var(--mono); font-size: 12px; color: var(--text); }
+    .timer-val { font-family: var(--mono); font-size: 12px; color: var(--text); font-weight: 500; }
     .bar-bg { height: 2px; background: var(--border); border-radius: 1px; }
     .bar-fill { height: 2px; background: var(--text); border-radius: 1px; transition: width 1s linear; }
 
-    .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%; max-width: 380px; }
-    .stat-card {
-      background: var(--surface); border: 1px solid var(--border);
-      border-radius: 8px; padding: 14px 16px;
-    }
+    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; }
     .stat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
-    .stat-value { font-family: var(--mono); font-size: 24px; font-weight: 400; color: var(--text); }
+    .stat-value { font-family: var(--mono); font-size: 20px; font-weight: 400; color: var(--text); }
     .stat-sub { font-size: 11px; color: var(--muted); margin-top: 3px; }
 
-    .prob { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+    /* Previous round result */
+    .prev-result { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px 20px; }
+    .prev-result-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+    .prev-result-title { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+    .prev-result-answer { font-family: var(--mono); font-size: 32px; font-weight: 300; letter-spacing: 5px; }
+    .prev-result-answer.win { color: var(--green); }
+    .prev-result-answer.rollover { color: var(--muted); }
+    .prev-result-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+    .prev-cell-val { font-family: var(--mono); font-size: 14px; color: var(--text); }
+    .prev-cell-lbl { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .claimed-badge { font-size: 10px; padding: 2px 8px; border-radius: 4px; font-family: var(--mono); }
+    .claimed-badge.yes { background: #e8f5e9; color: var(--green); }
+    .claimed-badge.no  { background: #fff3e0; color: #b45309; }
+    .claimed-badge.rollover { background: var(--bg); color: var(--muted); }
+
+    /* How to play */
+    .howto { border-top: 1px solid var(--border); padding-top: 20px; }
+    .howto-title { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
+    .howto-steps { display: flex; flex-direction: column; gap: 6px; }
+    .howto-step { font-size: 12px; color: var(--muted); display: flex; gap: 8px; }
+    .howto-step span { color: var(--text); font-weight: 500; min-width: 16px; }
+    .vrf-note { font-size: 11px; color: var(--muted); margin-top: 10px; padding: 8px 12px; background: var(--bg); border-radius: 6px; border: 1px solid var(--border); }
 
     /* ── Right ── */
     .right { display: flex; flex-direction: column; background: var(--surface); overflow: hidden; }
 
-    .panel-section { padding: 20px 24px; border-bottom: 1px solid var(--border); }
-    .panel-title { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 12px; }
+    .panel-block { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; }
+    .panel-header { padding: 16px 20px 12px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+    .panel-title { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1.5px; }
+    .panel-sub { font-size: 11px; color: var(--muted); margin-top: 3px; }
+    .divider { height: 1px; background: var(--border); flex-shrink: 0; }
 
-    .guess-list { overflow-y: auto; max-height: 280px; }
-    .guess-row {
-      display: grid; grid-template-columns: 80px 1fr 56px;
-      gap: 8px; padding: 7px 0; border-bottom: 1px solid var(--border);
-      align-items: center; font-size: 13px;
-    }
+    .guess-list { overflow-y: auto; flex: 1; padding: 0 20px; }
+    .guess-row { display: grid; grid-template-columns: 80px 1fr 52px; gap: 8px; padding: 7px 0; border-bottom: 1px solid var(--bg); align-items: center; }
     .guess-row:last-child { border-bottom: none; }
     .g-num { font-family: var(--mono); font-size: 15px; color: var(--text); }
     .g-num.win { color: var(--green); font-weight: 500; }
     .g-addr { color: var(--muted); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .g-time { font-family: var(--mono); font-size: 10px; color: #c0c0bc; text-align: right; }
-    .empty-state { color: var(--muted); font-size: 13px; padding: 16px 0; }
+    .g-header { display: grid; grid-template-columns: 80px 1fr 52px; gap: 8px; padding: 8px 20px 4px; }
+    .g-header span { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+    .empty-state { color: var(--muted); font-size: 13px; padding: 20px 0; text-align: center; }
 
-    /* Previous round */
-    .prev-block { padding: 20px 24px; flex: 1; }
-    .prev-answer-row { display: flex; align-items: baseline; gap: 12px; margin-bottom: 16px; }
-    .prev-num { font-family: var(--mono); font-size: 36px; font-weight: 300; color: var(--text); letter-spacing: 4px; }
-    .prev-num.win { color: var(--green); }
-    .prev-num.none { color: var(--muted); }
-    .prev-tag { font-family: var(--mono); font-size: 10px; color: var(--muted); background: var(--bg); padding: 2px 8px; border-radius: 4px; }
-
-    .prev-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-    .prev-cell-val { font-family: var(--mono); font-size: 15px; color: var(--text); }
-    .prev-cell-lbl { font-size: 11px; color: var(--muted); margin-top: 3px; }
-
-    @media (max-width: 720px) {
+    @media (max-width: 800px) {
       .layout { grid-template-columns: 1fr; }
-      .left { border-right: none; border-bottom: 1px solid var(--border); }
+      .left { border-right: none; border-bottom: 1px solid var(--border); padding: 20px 16px; }
       .number-display { font-size: 60px; }
+      .stats { grid-template-columns: 1fr 1fr; }
+      .prev-result-grid { grid-template-columns: 1fr 1fr; }
     }
   </style>
 </head>
@@ -112,13 +101,19 @@
 
 <header>
   <div class="logo">Number Guess</div>
-  <div class="round-info" id="round-label">—</div>
+  <div class="header-right">
+    <div class="vrf-badge">Powered by Chainlink VRF</div>
+    <div class="round-info" id="round-label">Loading...</div>
+  </div>
 </header>
 
 <div class="layout">
+  <!-- Left -->
   <div class="left">
-    <div class="number-display rolling" id="number-display">????</div>
-    <div class="digit-hint" id="digit-hint">connecting to chain...</div>
+    <div class="number-section">
+      <div class="number-display rolling" id="number-display">????</div>
+      <div class="digit-hint" id="digit-hint">connecting...</div>
+    </div>
 
     <div class="timer-wrap">
       <div class="timer-top">
@@ -132,45 +127,91 @@
       <div class="stat-card">
         <div class="stat-label">Prize Pool</div>
         <div class="stat-value" id="pool-val">—</div>
-        <div class="stat-sub">ETH</div>
+        <div class="stat-sub">ETH · winner gets 90%</div>
       </div>
       <div class="stat-card">
         <div class="stat-label">Guesses</div>
         <div class="stat-value" id="guess-val">—</div>
-        <div class="stat-sub" id="winner-share">winner gets —</div>
+        <div class="stat-sub" id="prob-sub">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Guess Fee</div>
+        <div class="stat-value">0.000001</div>
+        <div class="stat-sub">ETH per guess</div>
       </div>
     </div>
 
-    <div class="prob" id="prob-text">—</div>
+    <!-- Previous round result -->
+    <div class="prev-result" id="prev-result" style="display:none">
+      <div class="prev-result-header">
+        <div class="prev-result-title" id="prev-result-title">Previous Round</div>
+        <div class="prev-result-answer" id="prev-result-answer">—</div>
+      </div>
+      <div class="prev-result-grid">
+        <div>
+          <div class="prev-cell-val" id="pr-pool">—</div>
+          <div class="prev-cell-lbl">Pool (ETH)</div>
+        </div>
+        <div>
+          <div class="prev-cell-val" id="pr-guesses">—</div>
+          <div class="prev-cell-lbl">Participants</div>
+        </div>
+        <div>
+          <div class="prev-cell-val" id="pr-winner">—</div>
+          <div class="prev-cell-lbl">Winner</div>
+        </div>
+        <div>
+          <span class="claimed-badge" id="pr-claimed">—</span>
+          <div class="prev-cell-lbl" style="margin-top:6px">Prize</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- How to play -->
+    <div class="howto">
+      <div class="howto-title">How to play</div>
+      <div class="howto-steps">
+        <div class="howto-step"><span>1.</span> 每轮随机生成 3/4/5 位数字，每轮持续 30 分钟</div>
+        <div class="howto-step"><span>2.</span> 通过 Telegram Bot 猜一个数字，每次猜数费用 0.000001 ETH</div>
+        <div class="howto-step"><span>3.</span> 同一数字每轮只能被一个地址猜，先到先得</div>
+        <div class="howto-step"><span>4.</span> 猜中者赢得奖池 90%，未猜中则奖池滚入下一轮</div>
+        <div class="howto-step"><span>5.</span> 无人猜中时奖池累积，可能爆出大奖！</div>
+      </div>
+      <div class="vrf-note">
+        🔗 随机数由 <strong>Chainlink VRF</strong> 生成，链上可验证，任何人（包括合约部署者）均无法预测或操控答案。
+      </div>
+    </div>
   </div>
 
+  <!-- Right -->
   <div class="right">
-    <div class="panel-section">
-      <div class="panel-title">This round</div>
-      <div class="guess-list" id="guess-list">
+    <!-- Current round -->
+    <div class="panel-block" style="flex: 1.2;">
+      <div class="panel-header">
+        <div class="panel-title" id="cur-panel-title">Current Round</div>
+        <div class="panel-sub" id="cur-panel-sub">—</div>
+      </div>
+      <div class="g-header">
+        <span>Number</span><span>Address</span><span style="text-align:right">Time</span>
+      </div>
+      <div class="guess-list" id="cur-guess-list">
         <div class="empty-state">No guesses yet</div>
       </div>
     </div>
 
-    <div class="prev-block">
-      <div class="panel-title" id="prev-title">Previous round</div>
-      <div class="prev-answer-row">
-        <div class="prev-num none" id="prev-num">————</div>
-        <div class="prev-tag" id="prev-tag">—</div>
+    <div class="divider"></div>
+
+    <!-- Previous round -->
+    <div class="panel-block" style="flex: 1;">
+      <div class="panel-header">
+        <div class="panel-title" id="prev-panel-title">Previous Round</div>
+        <div class="panel-sub" id="prev-panel-sub">—</div>
       </div>
-      <div class="prev-grid">
-        <div>
-          <div class="prev-cell-val" id="prev-pool">—</div>
-          <div class="prev-cell-lbl">Pool (ETH)</div>
-        </div>
-        <div>
-          <div class="prev-cell-val" id="prev-cnt">—</div>
-          <div class="prev-cell-lbl">Guesses</div>
-        </div>
-        <div>
-          <div class="prev-cell-val" id="prev-status">—</div>
-          <div class="prev-cell-lbl">Result</div>
-        </div>
+      <div class="g-header">
+        <span>Number</span><span>Address</span><span style="text-align:right">Time</span>
+      </div>
+      <div class="guess-list" id="prev-guess-list">
+        <div class="empty-state">—</div>
       </div>
     </div>
   </div>
@@ -190,26 +231,31 @@
     { type:"function", name:"rounds", inputs:[{name:"",type:"uint256"}], outputs:[{name:"startTime",type:"uint256"},{name:"endTime",type:"uint256"},{name:"digits",type:"uint8"},{name:"answer",type:"uint256"},{name:"answered",type:"bool"},{name:"revealed",type:"bool"},{name:"claimed",type:"bool"},{name:"pool",type:"uint256"},{name:"winner",type:"address"},{name:"vrfRequestId",type:"uint256"}], stateMutability:"view" },
   ];
 
-  const client = createPublicClient({ chain: baseSepolia, transport: http() });
+  const client = createPublicClient({ chain: baseSepolia, transport: http("https://sepolia.base.org") });
 
-  const hintMap = { 3:"3-digit  ·  000–999", 4:"4-digit  ·  0000–9999", 5:"5-digit  ·  00000–99999" };
-  const probMap = { 3:"1 in 1,000 per guess  (0.1%)", 4:"1 in 10,000 per guess  (0.01%)", 5:"1 in 100,000 per guess  (0.001%)" };
+  const hintMap = { 3:"3-digit  ·  000 – 999", 4:"4-digit  ·  0000 – 9999", 5:"5-digit  ·  00000 – 99999" };
+  const probMap = { 3:"0.1% win chance per guess", 4:"0.01% win chance per guess", 5:"0.001% win chance per guess" };
+  const rangeMap = { 3:"000–999", 4:"0000–9999", 5:"00000–99999" };
 
   const pad = (n, d) => String(n).padStart(d, "0");
   const fmtAddr = a => a.slice(0,6) + "..." + a.slice(-4);
-  const fmtEth = v => parseFloat(formatEther(v)).toFixed(5);
-  const fmtTime = s => { s = Math.max(0,s); return String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0"); };
+  const fmtEth = v => parseFloat(formatEther(v)).toFixed(6);
+  const fmtTime = s => {
+    s = Math.max(0, Number(s) - Math.floor(Date.now()/1000));
+    return String(Math.floor(s/60)).padStart(2,"0") + ":" + String(s%60).padStart(2,"0");
+  };
+  const fmtTimestamp = ts => new Date(Number(ts)*1000).toLocaleTimeString("zh-CN",{hour:"2-digit",minute:"2-digit"});
+  const ZERO_ADDR = "0x0000000000000000000000000000000000000000";
 
-  let rollInterval, timerInterval;
-  let digits = 4;
+  let rollInterval, timerInterval, curDigits = 4;
 
   function roll(d) {
-    digits = d || 4;
+    curDigits = d || 4;
     clearInterval(rollInterval);
     rollInterval = setInterval(() => {
       const el = document.getElementById("number-display");
       if (!el.classList.contains("rolling")) return;
-      el.textContent = pad(Math.floor(Math.random() * Math.pow(10, digits)), digits);
+      el.textContent = pad(Math.floor(Math.random() * Math.pow(10, curDigits)), curDigits);
     }, 80);
   }
 
@@ -217,46 +263,68 @@
     clearInterval(timerInterval);
     timerInterval = setInterval(() => {
       const left = Number(endTime) - Math.floor(Date.now()/1000);
-      document.getElementById("timer-val").textContent = fmtTime(left);
-      document.getElementById("bar-fill").style.width = Math.max(0,(left/ROUND_DURATION)*100)+"%";
+      document.getElementById("timer-val").textContent = fmtTime(endTime);
+      const pct = Math.max(0, (left / ROUND_DURATION) * 100);
+      document.getElementById("bar-fill").style.width = pct + "%";
     }, 1000);
   }
 
-  function renderGuesses(guesses, answer, revealed, d) {
-    const el = document.getElementById("guess-list");
+  function renderGuesses(listId, guesses, answer, revealed, digits) {
+    const el = document.getElementById(listId);
     if (!guesses?.length) { el.innerHTML = '<div class="empty-state">No guesses yet</div>'; return; }
     el.innerHTML = [...guesses].reverse().map(g => {
-      const n = pad(Number(g.number), d||4);
-      const win = revealed && Number(g.number)===Number(answer);
-      const t = new Date(Number(g.timestamp)*1000).toLocaleTimeString("zh-CN",{hour:"2-digit",minute:"2-digit"});
+      const n   = pad(Number(g.number), digits || 4);
+      const win = revealed && Number(g.number) === Number(answer);
       return `<div class="guess-row">
         <span class="g-num${win?" win":""}">${n}${win?" ✓":""}</span>
         <span class="g-addr">${fmtAddr(g.player)}</span>
-        <span class="g-time">${t}</span>
+        <span class="g-time">${fmtTimestamp(g.timestamp)}</span>
       </div>`;
     }).join("");
   }
 
-  async function loadPrev(cur) {
+  async function loadPrevRound(cur) {
     if (cur <= 1n) return;
     const prev = cur - 1n;
     try {
-      const r = await client.readContract({ address:CONTRACT, abi:ABI, functionName:"rounds", args:[prev] });
-      const guesses = await client.readContract({ address:CONTRACT, abi:ABI, functionName:"getRoundGuesses", args:[prev] });
-      document.getElementById("prev-title").textContent = `Round #${prev}`;
-      document.getElementById("prev-pool").textContent = fmtEth(r[7]);
-      document.getElementById("prev-cnt").textContent = guesses.length;
+      const r  = await client.readContract({ address:CONTRACT, abi:ABI, functionName:"rounds", args:[prev] });
+      const gs = await client.readContract({ address:CONTRACT, abi:ABI, functionName:"getRoundGuesses", args:[prev] });
+
+      // Right panel
+      document.getElementById("prev-panel-title").textContent = `Round #${prev}`;
+      document.getElementById("prev-panel-sub").textContent   = `${gs.length} guesses · ${fmtEth(r[7])} ETH pool`;
+      renderGuesses("prev-guess-list", gs, r[3], r[5], r[2]);
+
+      // Left result card
+      const resultCard = document.getElementById("prev-result");
+      resultCard.style.display = "block";
+      document.getElementById("prev-result-title").textContent = `Round #${prev} Result`;
+
+      const ansEl = document.getElementById("prev-result-answer");
       if (r[5]) {
-        const pNum = document.getElementById("prev-num");
-        pNum.textContent = pad(Number(r[3]), r[2]);
-        const hasWinner = r[8] !== "0x0000000000000000000000000000000000000000";
-        pNum.className = "prev-num" + (hasWinner ? " win" : " none");
-        document.getElementById("prev-tag").textContent = hasWinner ? fmtAddr(r[8]) : "no winner";
-        document.getElementById("prev-status").textContent = hasWinner ? "Won" : "Rolled over";
+        const hasWinner = r[8] !== ZERO_ADDR;
+        ansEl.textContent  = pad(Number(r[3]), r[2]);
+        ansEl.className    = "prev-result-answer " + (hasWinner ? "win" : "rollover");
+        document.getElementById("pr-pool").textContent    = fmtEth(r[7]);
+        document.getElementById("pr-guesses").textContent = gs.length;
+        document.getElementById("pr-winner").textContent  = hasWinner ? fmtAddr(r[8]) : "No winner";
+
+        const claimedEl = document.getElementById("pr-claimed");
+        if (!hasWinner) {
+          claimedEl.textContent  = "Rolled over";
+          claimedEl.className    = "claimed-badge rollover";
+        } else if (r[6]) {
+          claimedEl.textContent  = "Claimed ✓";
+          claimedEl.className    = "claimed-badge yes";
+        } else {
+          claimedEl.textContent  = "Unclaimed";
+          claimedEl.className    = "claimed-badge no";
+        }
       } else {
-        document.getElementById("prev-status").textContent = "Pending";
+        ansEl.textContent = "Pending";
+        ansEl.className   = "prev-result-answer rollover";
       }
-    } catch(e) { console.error(e); }
+    } catch(e) { console.error("prev round:", e); }
   }
 
   async function refresh() {
@@ -267,32 +335,40 @@
 
       document.getElementById("round-label").textContent = `Round #${cur}`;
 
-      const d    = info.digits || 4;
+      const d    = Number(info.digits) || 4;
       const pool = fmtEth(info.pool);
       const cnt  = gs.length;
+      const now  = Math.floor(Date.now()/1000);
+      const ended = now >= Number(info.endTime);
 
-      document.getElementById("pool-val").textContent = pool;
+      document.getElementById("pool-val").textContent  = pool;
       document.getElementById("guess-val").textContent = cnt;
-      document.getElementById("winner-share").textContent = `winner gets ${(parseFloat(pool)*0.9).toFixed(5)}`;
-      document.getElementById("prob-text").textContent = probMap[d] || "—";
-      document.getElementById("digit-hint").textContent = hintMap[d] || (info.answered ? "" : "Waiting for random number...");
+      document.getElementById("prob-sub").textContent  = probMap[d] || "—";
 
-      const el = document.getElementById("number-display");
+      // Current round right panel
+      document.getElementById("cur-panel-title").textContent = `Round #${cur}`;
+      const statusStr = !info.answered ? "Waiting for VRF..."
+        : info.revealed ? `Answer: ${pad(Number(info.answer), d)}`
+        : ended ? "Round ended · pending reveal"
+        : `${rangeMap[d]} · ${fmtTime(info.endTime)} left`;
+      document.getElementById("cur-panel-sub").textContent = `${cnt} guesses · ${statusStr}`;
+
+      // Number display
+      const numEl = document.getElementById("number-display");
       if (info.revealed) {
-        el.className = "number-display revealed";
-        el.textContent = pad(Number(info.answer), d);
+        numEl.className  = "number-display revealed";
+        numEl.textContent = pad(Number(info.answer), d);
         clearInterval(rollInterval);
-      } else if (info.answered) {
-        el.className = "number-display rolling";
-        roll(d);
       } else {
-        el.className = "number-display rolling";
-        roll(4);
+        numEl.className = "number-display rolling";
+        roll(d);
       }
 
+      document.getElementById("digit-hint").textContent = hintMap[d] || (info.answered ? "" : "Waiting for random number...");
       startTimer(info.endTime);
-      renderGuesses(gs, info.answer, info.revealed, d);
-      await loadPrev(cur);
+      renderGuesses("cur-guess-list", gs, info.answer, info.revealed, d);
+
+      await loadPrevRound(cur);
     } catch(e) {
       console.error(e);
       document.getElementById("digit-hint").textContent = "Connection error — retrying...";
