@@ -358,7 +358,6 @@
 
   async function refresh() {
     try {
-<<<<<<< HEAD
       const resp = await fetch(`${SERVER}/round`, { 
   headers: { 
     "ngrok-skip-browser-warning": "true",
@@ -366,12 +365,11 @@
   } 
 });
       const data = await resp.json();
-=======
       const r   = await fetch(`${SERVER}/round`, { headers: { "ngrok-skip-browser-warning":"true" } });
       const d   = await r.json();
       const now = Math.floor(Date.now()/1000);
       const ended = now >= parseInt(d.endTime);
->>>>>>> ceb1058 (remove browser zktls, backend handles price)
+ceb1058 (remove browser zktls, backend handles price)
 
       document.getElementById("round-tag").textContent      = `Round #${d.round}`;
       document.getElementById("coin-label").textContent     = COIN_LABELS[d.coin] || d.coin;
