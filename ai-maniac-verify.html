@@ -472,9 +472,9 @@ function generateCard() {
   // 后端 webhook
   const tgUid = new URLSearchParams(location.search).get('uid') || 'unknown';
   fetch(WEBHOOK, {
-    method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ tgUserId:tgUid, states: Object.fromEntries(PLATFORMS.map(p => [p.key, state[p.key].level])) })
-  }).catch(e => console.warn('Webhook failed:', e));
+  method:'POST', headers:{'Content-Type':'application/json', 'ngrok-skip-browser-warning':'true'},
+  body: JSON.stringify({ tgUserId:tgUid, states: Object.fromEntries(PLATFORMS.map(p => [p.key, state[p.key].level])) })
+}).catch(e => console.warn('Webhook failed:', e));
 }
 
 renderPlatformGrid();
