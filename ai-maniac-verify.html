@@ -376,7 +376,9 @@ async function verifyPlatform(key) {
     const req = primusZKTLS.generateRequestParams(p.templateId, USER_ADDRESS);
     req.setAttMode({ algorithmType: 'proxytls' });
     const reqStr = req.toJsonString();
-    const signRes = await fetch(SIGN_URL + '?signParams=' + encodeURIComponent(reqStr));
+    const signRes = await fetch(SIGN_URL + '?signParams=' + encodeURIComponent(reqStr), {
+  headers: { "ngrok-skip-browser-warning": "true" }
+});
     if (!signRes.ok) throw new Error('签名失败');
     const signJson = await signRes.json();
     const signedStr = typeof signJson.signResult === 'string' ? signJson.signResult : JSON.stringify(signJson.signResult);
